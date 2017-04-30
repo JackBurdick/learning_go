@@ -41,6 +41,9 @@ func main() {
 	}
 
 	var spliceHeader [6]byte
+	var trackSize int64
+	var versionString [32]byte
+	var tempo float32
 	// inspect data contents
 	for _, fileName := range fileList {
 		// open file
@@ -51,12 +54,40 @@ func main() {
 		}
 		fmt.Printf("%s\n", hex.Dump(fileContents))
 		buf := bytes.NewReader(fileContents)
-		// Endian-ness not critical here
-		errors := binary.Read(buf, binary.LittleEndian, &spliceHeader)
-		if errors != nil {
+
+		// Header: SPLICE
+		err = binary.Read(buf, binary.BigEndian, &spliceHeader)
+		if err != nil {
 			fmt.Println("ERROR")
 		}
 		fmt.Printf("%s\n", spliceHeader)
+
+		// Header: track size is big endian
+		err = binary.Read(buf, binary.BigEndian, &trackSize)
+		if err != nil {
+			fmt.Println("ERROR")
+		}
+		fmt.Printf("%v\n", trackSize)
+
+		// Header: version
+		err = binary.Read(buf, binary.BigEndian, &versionString)
+		if err != nil {
+			fmt.Println("ERROR")
+		}
+		fmt.Printf("%s\n", versionString)
+
+		// Header: tempo
+		// NOTE: tempo is little Endian?
+		err = binary.Read(buf, binary.LittleEndian, &tempo)
+		if err != nil {
+			fmt.Println("ERROR")
+		}
+		fmt.Printf("%v\n", tempo)
+
+		// read file examples: https://gobyexample.com/reading-files
+
+		// Read in body. id+name + 16 steps
+
 	}
 
 	// printouts contain (header + data)
