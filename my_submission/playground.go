@@ -40,11 +40,18 @@ func main() {
 		}
 	}
 
+	// 6
 	var spliceHeader [6]byte
+	// 8
 	var trackSize int64
+	// 32
 	var versionString [32]byte
+	// 4
 	var tempo float32
+
 	// inspect data contents
+	var id uint8
+	var nameLength int32
 	for _, fileName := range fileList {
 		// open file
 		fullPath := filepath.Join(inDataDirectory, fileName)
@@ -60,21 +67,21 @@ func main() {
 		if err != nil {
 			fmt.Println("ERROR")
 		}
-		fmt.Printf("%s\n", spliceHeader)
+		fmt.Printf("SPLICE: %s\n", spliceHeader)
 
 		// Header: track size is big endian
 		err = binary.Read(buf, binary.BigEndian, &trackSize)
 		if err != nil {
 			fmt.Println("ERROR")
 		}
-		fmt.Printf("%v\n", trackSize)
+		fmt.Printf("trackSize: %v\n", trackSize)
 
 		// Header: version
 		err = binary.Read(buf, binary.BigEndian, &versionString)
 		if err != nil {
 			fmt.Println("ERROR")
 		}
-		fmt.Printf("%s\n", versionString)
+		fmt.Printf("VERSION: %s\n", versionString)
 
 		// Header: tempo
 		// NOTE: tempo is little Endian?
@@ -82,11 +89,33 @@ func main() {
 		if err != nil {
 			fmt.Println("ERROR")
 		}
-		fmt.Printf("%v\n", tempo)
+		fmt.Printf("Tempo: %v\n", tempo)
 
 		// read file examples: https://gobyexample.com/reading-files
 
 		// Read in body. id+name + 16 steps
+		// while != EOF -> read in ___
+		// ID
+		err = binary.Read(buf, binary.BigEndian, &id)
+		fmt.Printf("id: %v\n", id)
+
+		// Length of instrument name
+		err = binary.Read(buf, binary.BigEndian, &nameLength)
+		fmt.Printf("name length: %v\n", nameLength)
+
+		// name of instrument
+		nameBuf := make([]byte, nameLength)
+		err = binary.Read(buf, binary.LittleEndian, &nameBuf)
+		fmt.Printf("name: %s\n", nameBuf)
+
+		// steps
+		// 16 is const
+		stepBuf := make([]byte, 16)
+		err = binary.Read(buf, binary.LittleEndian, &stepBuf)
+		for _, num := range stepBuf {
+			fmt.Printf("%v", num)
+		}
+		fmt.Printf("\nsteps: %v\n", stepBuf)
 
 	}
 
