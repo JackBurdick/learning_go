@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -40,6 +39,7 @@ func main() {
 		}
 	}
 
+	var fileLen int
 	// 6
 	var spliceHeader [6]byte
 	// 8
@@ -59,8 +59,10 @@ func main() {
 		if err != nil {
 			fmt.Println("ERROR")
 		}
-		fmt.Printf("%s\n", hex.Dump(fileContents))
+		//fmt.Printf("%s\n", hex.Dump(fileContents))
 		buf := bytes.NewReader(fileContents)
+		fileLen = len(fileContents)
+		//fmt.Printf("Full length: %v\n", len(fileContents))
 
 		// Header: SPLICE
 		err = binary.Read(buf, binary.BigEndian, &spliceHeader)
@@ -68,6 +70,8 @@ func main() {
 			fmt.Println("ERROR")
 		}
 		fmt.Printf("SPLICE: %s\n", spliceHeader)
+		//fmt.Printf("JACK - %v\n", binary.Size(spliceHeader))
+		fileLen -= binary.Size(spliceHeader)
 
 		// Header: track size is big endian
 		err = binary.Read(buf, binary.BigEndian, &trackSize)
@@ -75,6 +79,7 @@ func main() {
 			fmt.Println("ERROR")
 		}
 		fmt.Printf("trackSize: %v\n", trackSize)
+		fileLen -= binary.Size(trackSize)
 
 		// Header: version
 		err = binary.Read(buf, binary.BigEndian, &versionString)
@@ -82,6 +87,7 @@ func main() {
 			fmt.Println("ERROR")
 		}
 		fmt.Printf("VERSION: %s\n", versionString)
+		fileLen -= binary.Size(versionString)
 
 		// Header: tempo
 		// NOTE: tempo is little Endian?
@@ -90,32 +96,44 @@ func main() {
 			fmt.Println("ERROR")
 		}
 		fmt.Printf("Tempo: %v\n", tempo)
+		fileLen -= binary.Size(tempo)
+		fmt.Printf("Cur Len -------> %v\n", fileLen)
+		//fmt.Printf("len - %v", len(buf))
 
 		// read file examples: https://gobyexample.com/reading-files
 
 		// Read in body. id+name + 16 steps
-		// while != EOF -> read in ___
-		// ID
-		err = binary.Read(buf, binary.BigEndian, &id)
-		fmt.Printf("id: %v\n", id)
+		// while != EOF
+		// TODO: There is an error with the end of file logic here..
+		for fileLen > 0 {
+			// ID
+			//curIndex
+			err = binary.Read(buf, binary.BigEndian, &id)
+			fmt.Printf("id: %v\n", id)
+			fileLen -= binary.Size(id)
 
-		// Length of instrument name
-		err = binary.Read(buf, binary.BigEndian, &nameLength)
-		fmt.Printf("name length: %v\n", nameLength)
+			// Length of instrument name
+			err = binary.Read(buf, binary.BigEndian, &nameLength)
+			fmt.Printf("name length: %v\n", nameLength)
+			fileLen -= binary.Size(nameLength)
 
-		// name of instrument
-		nameBuf := make([]byte, nameLength)
-		err = binary.Read(buf, binary.LittleEndian, &nameBuf)
-		fmt.Printf("name: %s\n", nameBuf)
+			// name of instrument
+			nameBuf := make([]byte, nameLength)
+			err = binary.Read(buf, binary.LittleEndian, &nameBuf)
+			fmt.Printf("name: %s\n", nameBuf)
+			fileLen -= binary.Size(nameBuf)
 
-		// steps
-		// 16 is const
-		stepBuf := make([]byte, 16)
-		err = binary.Read(buf, binary.LittleEndian, &stepBuf)
-		for _, num := range stepBuf {
-			fmt.Printf("%v", num)
+			// steps
+			// 16 is const
+			stepBuf := make([]byte, 16)
+			err = binary.Read(buf, binary.LittleEndian, &stepBuf)
+			for _, num := range stepBuf {
+				fmt.Printf("%v", num)
+			}
+			fmt.Printf("\nsteps: %v\n", stepBuf)
+			fileLen -= binary.Size(stepBuf)
+			fmt.Printf("JACK ==============: %v\n", fileLen)
 		}
-		fmt.Printf("\nsteps: %v\n", stepBuf)
 
 	}
 
