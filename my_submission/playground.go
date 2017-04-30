@@ -1,6 +1,9 @@
 package main
 
 import (
+	"bytes"
+	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -37,15 +40,23 @@ func main() {
 		}
 	}
 
+	var spliceHeader [6]byte
 	// inspect data contents
 	for _, fileName := range fileList {
 		// open file
-		file, err := ioutil.ReadFile(filepath.Join(inDataDirectory, fileName))
+		fullPath := filepath.Join(inDataDirectory, fileName)
+		fileContents, err := ioutil.ReadFile(fullPath)
 		if err != nil {
 			fmt.Println("ERROR")
 		}
-
-		fmt.Println(string(file))
+		fmt.Printf("%s\n", hex.Dump(fileContents))
+		buf := bytes.NewReader(fileContents)
+		// Endian-ness not critical here
+		errors := binary.Read(buf, binary.LittleEndian, &spliceHeader)
+		if errors != nil {
+			fmt.Println("ERROR")
+		}
+		fmt.Printf("%s\n", spliceHeader)
 	}
 
 	// printouts contain (header + data)
@@ -53,5 +64,7 @@ func main() {
 	// * Tempo
 	// * tracks
 	// 		* id, name, 16 steps
+	//
+	//
 
 }
