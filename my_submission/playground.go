@@ -8,20 +8,6 @@ import (
 	"path/filepath"
 )
 
-// DecodeFile decodes the drum machine file found at the provided path
-// and returns a pointer to a parsed pattern which is the entry point to the
-// rest of the data.
-// TODO: implement
-// func DecodeFile(path string) (*Pattern, error) {
-// 	p := &Pattern{}
-// 	return p, nil
-// }
-//
-// type Pattern struct{
-//
-// }
-//
-
 func main() {
 	// get list of file names at target directory
 	inDataDirectory := "fixtures"
@@ -31,7 +17,7 @@ func main() {
 	}
 
 	// clean list names
-	// > remove .DS_Store
+	// - remove .DS_Store
 	var fileList []string
 	for _, file := range files {
 		if file.Name() != ".DS_Store" {
@@ -40,14 +26,10 @@ func main() {
 	}
 
 	var fileLen int
-	// 6
-	var spliceHeader [6]byte
-	// 8
-	var trackSize int64
-	// 32
-	var versionString [32]byte
-	// 4
-	var tempo float32
+	var spliceHeader [6]byte   // 6
+	var trackSize int64        // 8
+	var versionString [32]byte // 32
+	var tempo float32          // 4
 
 	// inspect data contents
 	var id uint8
@@ -104,7 +86,7 @@ func main() {
 
 		// Read in body. id+name + 16 steps
 		// while != EOF
-		// TODO: There is an error with the end of file logic here..
+		// TODO: Issue is with pattern 5...
 		for fileLen > 0 {
 			// ID
 			//curIndex
@@ -136,13 +118,5 @@ func main() {
 		}
 
 	}
-
-	// printouts contain (header + data)
-	// * Version
-	// * Tempo
-	// * tracks
-	// 		* id, name, 16 steps
-	//
-	//
 
 }
