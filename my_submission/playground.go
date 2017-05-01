@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 )
 
+// config
 const NUMSTEPS = 16
 
 // each track can have multiple instruments
@@ -36,11 +37,6 @@ type track struct {
 // hex dump for visualization/debug: https://golang.org/pkg/encoding/hex/#Dump
 // create strings: https://stackoverflow.com/questions/1760757/how-to-efficiently-concatenate-strings-in-go
 
-// func printTrackFormat(curTrack track) {
-// 	fmt.Println("%v\n", track.spliceHeader)
-// 	fmt.Println("%v\n", track.versionString)
-// }
-
 func checkError(err error) {
 	if err != nil {
 		fmt.Println("error: ", err)
@@ -48,6 +44,9 @@ func checkError(err error) {
 }
 
 func createPrintString(curTrack track) string {
+	// create string of specified track information
+	// include: specific track information from struct
+	// loop instruments in the track and print their steps
 	var buffer bytes.Buffer
 	buffer.WriteString(fmt.Sprintf("Saved with HW Version: %s\n", curTrack.versionString))
 	buffer.WriteString(fmt.Sprintf("Tempo: %v\n", curTrack.tempo))
@@ -72,14 +71,92 @@ func createPrintString(curTrack track) string {
 	return buffer.String()
 }
 
-// func parseTrackToStruct() track {
-//
-// }
+func parseTrackToStruct(fileContents []byte) track {
+	// parse the given `.splice` files and store
+	// relevant information in the struct
+	// Use (debug): fmt.Printf("%s\n", hex.Dump(fileContents))
+
+	// track temp vars
+	var fileLen int
+	var spliceHeader [6]byte   // 6
+	var trackSize int64        // 8
+	var versionString [32]byte // 32
+	var tempo float32          // 4
+
+	// instrument temp vars
+	var id uint8
+	var nameLength int32
+
+	newTrack := track{}
+
+	buf := bytes.NewReader(fileContents)
+	fileLen = len(fileContents)
+	newTrack.trackSize = int64(fileLen)
+
+	// Header: SPLICE
+	err := binary.Read(buf, binary.BigEndian, &spliceHeader)
+	checkError(err)
+	fileLen -= binary.Size(spliceHeader)
+	newTrack.spliceHeader = spliceHeader
+
+	// Header: track size is big endian
+	err = binary.Read(buf, binary.BigEndian, &trackSize)
+	checkError(err)
+	fileLen -= binary.Size(trackSize)
+	newTrack.trackSize = trackSize
+
+	// Header: version
+	err = binary.Read(buf, binary.BigEndian, &versionString)
+	checkError(err)
+	fileLen -= binary.Size(versionString)
+	newTrack.versionString = versionString
+
+	// Header: tempo
+	// NOTE: tempo is little Endian?
+	err = binary.Read(buf, binary.LittleEndian, &tempo)
+	checkError(err)
+	fileLen -= binary.Size(tempo)
+	newTrack.tempo = tempo
+
+	// Read in body. id+name + 16 steps
+	// TODO: Issue is with pattern 5...
+	for fileLen > 0 {
+		curInstrument := instrument{}
+		// ID
+		err = binary.Read(buf, binary.BigEndian, &id)
+		checkError(err)
+		fileLen -= binary.Size(id)
+		curInstrument.instrumentID = id
+
+		// Length of instrument name
+		err = binary.Read(buf, binary.BigEndian, &nameLength)
+		checkError(err)
+		fileLen -= binary.Size(nameLength)
+
+		// name of instrument
+		nameBuf := make([]byte, nameLength)
+		err = binary.Read(buf, binary.LittleEndian, &nameBuf)
+		checkError(err)
+		fileLen -= binary.Size(nameBuf)
+		curInstrument.instrumentName = nameBuf
+
+		// steps
+		stepBuf := make([]byte, NUMSTEPS)
+		err = binary.Read(buf, binary.LittleEndian, &stepBuf)
+		checkError(err)
+		fileLen -= binary.Size(stepBuf)
+		curInstrument.steps = stepBuf
+		// add instrument to instruments on track
+		newTrack.instruments = append(newTrack.instruments, curInstrument)
+	}
+	return newTrack
+}
 
 func main() {
 	var tracks []track
 	// get list of file names at target directory
 	inDataDirectory := "fixtures"
+
 	files, err := ioutil.ReadDir(inDataDirectory)
 	checkError(err)
 
@@ -92,89 +169,21 @@ func main() {
 		}
 	}
 
-	var fileLen int
-	var spliceHeader [6]byte   // 6
-	var trackSize int64        // 8
-	var versionString [32]byte // 32
-	var tempo float32          // 4
-
-	// inspect data contents
-	var id uint8
-	var nameLength int32
+	// loop directory and store parsed contents
 	for _, fileName := range fileList {
-		// open file
+		// open, read in file
 		fullPath := filepath.Join(inDataDirectory, fileName)
 		fileContents, err := ioutil.ReadFile(fullPath)
 		checkError(err)
-		// PARSE
-		//parseTrackToStruct(fileContents)
-		newTrack := track{}
-		//fmt.Printf("%s\n", hex.Dump(fileContents))
-		buf := bytes.NewReader(fileContents)
-		fileLen = len(fileContents)
-		// NOTE: this will need to be looked at
-		newTrack.trackSize = int64(fileLen)
 
-		// Header: SPLICE
-		err = binary.Read(buf, binary.BigEndian, &spliceHeader)
-		checkError(err)
-		fileLen -= binary.Size(spliceHeader)
-		newTrack.spliceHeader = spliceHeader
+		// Parse
+		newTrack := parseTrackToStruct(fileContents)
 
-		// Header: track size is big endian
-		err = binary.Read(buf, binary.BigEndian, &trackSize)
-		checkError(err)
-		fileLen -= binary.Size(trackSize)
-		newTrack.trackSize = trackSize
-
-		// Header: version
-		err = binary.Read(buf, binary.BigEndian, &versionString)
-		checkError(err)
-		fileLen -= binary.Size(versionString)
-		newTrack.versionString = versionString
-
-		// Header: tempo
-		// NOTE: tempo is little Endian?
-		err = binary.Read(buf, binary.LittleEndian, &tempo)
-		checkError(err)
-		fileLen -= binary.Size(tempo)
-		newTrack.tempo = tempo
-
-		// Read in body. id+name + 16 steps
-		// TODO: Issue is with pattern 5...
-		for fileLen > 0 {
-			curInstrument := instrument{}
-			// ID
-			err = binary.Read(buf, binary.BigEndian, &id)
-			checkError(err)
-			fileLen -= binary.Size(id)
-			curInstrument.instrumentID = id
-
-			// Length of instrument name
-			err = binary.Read(buf, binary.BigEndian, &nameLength)
-			checkError(err)
-			fileLen -= binary.Size(nameLength)
-
-			// name of instrument
-			nameBuf := make([]byte, nameLength)
-			err = binary.Read(buf, binary.LittleEndian, &nameBuf)
-			checkError(err)
-			fileLen -= binary.Size(nameBuf)
-			curInstrument.instrumentName = nameBuf
-
-			// steps
-			stepBuf := make([]byte, NUMSTEPS)
-			err = binary.Read(buf, binary.LittleEndian, &stepBuf)
-			checkError(err)
-			fileLen -= binary.Size(stepBuf)
-			curInstrument.steps = stepBuf
-			newTrack.instruments = append(newTrack.instruments, curInstrument)
-		}
+		// store track information
 		tracks = append(tracks, newTrack)
-
 	}
 
-	// print each track information per specification
+	// print track information per specification
 	for _, track := range tracks {
 		trackOutputFormatted := createPrintString(track)
 		fmt.Println(trackOutputFormatted)
