@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -145,15 +144,7 @@ func parseTrackToStruct(fileContents []byte) track {
 		err = binary.Read(buf, binary.BigEndian, &nameLength)
 		checkError(err)
 		if nameLength > 10 {
-			fmt.Printf("%s\n", hex.Dump(fileContents))
-			fmt.Printf("fileLen: %v\n", fileLen)
-			fmt.Printf("spliceHeader: %s\n", spliceHeader)
-			fmt.Printf("trackSize: %v\n", trackSize)
-			fmt.Printf("versionString: %s\n", versionString)
-			fmt.Printf("tempo: %v\n", tempo)
-			fmt.Printf("instrument id: %v\n", id)
-			fmt.Printf("nameLength: %v\n", nameLength)
-			fmt.Println("\n")
+			// TODO: this is a cheap fix to a larger problem
 			break
 		}
 		fileLen -= binary.Size(nameLength)
