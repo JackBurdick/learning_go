@@ -89,6 +89,9 @@ func parseTrackToStruct(fileContents []byte) track {
 	// 3. parse and store relevant parts, subtract size from file length
 	//NOTE: Use (for debuging): fmt.Printf("%s\n", hex.Dump(fileContents))
 
+	fmt.Printf("%s\n", hex.Dump(fileContents))
+	fmt.Println("\n==========================================================\n")
+
 	// track temp vars
 	var fileLen int
 	var spliceHeader [6]byte   // 6
@@ -105,24 +108,28 @@ func parseTrackToStruct(fileContents []byte) track {
 	buf := bytes.NewReader(fileContents)
 	fileLen = len(fileContents)
 	newTrack.trackSize = int64(fileLen)
+	fmt.Printf("fileLen: %v\n", fileLen)
 
 	// Header: SPLICE
 	err := binary.Read(buf, binary.BigEndian, &spliceHeader)
 	checkError(err)
 	fileLen -= binary.Size(spliceHeader)
 	newTrack.spliceHeader = spliceHeader
+	fmt.Printf("spliceHeader: %s\n", spliceHeader)
 
 	// Header: track size is big endian
 	err = binary.Read(buf, binary.BigEndian, &trackSize)
 	checkError(err)
 	fileLen -= binary.Size(trackSize)
 	newTrack.trackSize = trackSize
+	fmt.Printf("trackSize: %v\n", trackSize)
 
 	// Header: version
 	err = binary.Read(buf, binary.BigEndian, &versionString)
 	checkError(err)
 	fileLen -= binary.Size(versionString)
 	newTrack.versionString = versionString
+	fmt.Printf("versionString: %s\n", versionString)
 
 	// Header: tempo
 	// NOTE: tempo is little Endian?
@@ -130,6 +137,7 @@ func parseTrackToStruct(fileContents []byte) track {
 	checkError(err)
 	fileLen -= binary.Size(tempo)
 	newTrack.tempo = tempo
+	fmt.Printf("tempo: %v\n", tempo)
 
 	// Read in body. id+name + 16 steps
 	// TODO: Issue is with pattern 5...
@@ -140,19 +148,13 @@ func parseTrackToStruct(fileContents []byte) track {
 		checkError(err)
 		fileLen -= binary.Size(id)
 		curInstrument.instrumentID = id
+		fmt.Printf("instrument id: %v\n", id)
 
 		// Length of instrument name
 		err = binary.Read(buf, binary.BigEndian, &nameLength)
 		checkError(err)
+		fmt.Printf("nameLength: %v\n", nameLength)
 		if nameLength > 10 {
-			fmt.Printf("%s\n", hex.Dump(fileContents))
-			fmt.Printf("fileLen: %v\n", fileLen)
-			fmt.Printf("spliceHeader: %s\n", spliceHeader)
-			fmt.Printf("trackSize: %v\n", trackSize)
-			fmt.Printf("versionString: %s\n", versionString)
-			fmt.Printf("tempo: %v\n", tempo)
-			fmt.Printf("instrument id: %v\n", id)
-			fmt.Printf("nameLength: %v\n", nameLength)
 			fmt.Println("\n")
 			break
 		}
@@ -178,41 +180,15 @@ func parseTrackToStruct(fileContents []byte) track {
 }
 
 func main() {
-	var tracks []track
 	// config: root input dir
-	inDataDirectory := "fixtures"
-
-	// get list of file names at target directory
-	files, err := ioutil.ReadDir(inDataDirectory)
+	fullPath := filepath.Join("fixtures", "pattern_5.splice")
+	fileContents, err := ioutil.ReadFile(fullPath)
 	checkError(err)
 
-	// clean list names
-	// - remove .DS_Store
-	var fileList []string
-	for _, file := range files {
-		if file.Name() != ".DS_Store" {
-			fileList = append(fileList, file.Name())
-		}
-	}
+	// parse
+	newTrack := parseTrackToStruct(fileContents)
 
-	// loop directory and store parsed contents
-	for _, fileName := range fileList {
-		// open, read in file
-		fullPath := filepath.Join(inDataDirectory, fileName)
-		fileContents, err := ioutil.ReadFile(fullPath)
-		checkError(err)
-
-		// parse
-		newTrack := parseTrackToStruct(fileContents)
-
-		// store track information
-		tracks = append(tracks, newTrack)
-	}
-
-	// print track information per specification
-	for _, track := range tracks {
-		trackOutputFormatted := createPrintString(track)
-		fmt.Println(trackOutputFormatted)
-	}
+	trackOutputFormatted := createPrintString(newTrack)
+	fmt.Println(trackOutputFormatted)
 
 }
