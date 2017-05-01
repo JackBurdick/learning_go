@@ -10,12 +10,14 @@ import (
 
 const NUMSTEPS = 16
 
+// each track can have multiple instruments
 type instrument struct {
 	instrumentName []byte
 	instrumentID   uint8
 	steps          []byte
 }
 
+// one track per slice file
 type track struct {
 	fileLen       int
 	spliceHeader  [6]byte  // 6
@@ -27,6 +29,12 @@ type track struct {
 
 // RESOURCES:
 // read file examples: https://gobyexample.com/reading-files
+// range: https://github.com/golang/go/wiki/Range
+// slice in struct: https://stackoverflow.com/questions/18042439/go-append-to-slice-in-struct
+// const: https://blog.golang.org/constants
+// binary reader: https://golang.org/pkg/encoding/binary/#Read
+// hex dump for visualization/debug: https://golang.org/pkg/encoding/hex/#Dump
+// create strings: https://stackoverflow.com/questions/1760757/how-to-efficiently-concatenate-strings-in-go
 
 // func printTrackFormat(curTrack track) {
 // 	fmt.Println("%v\n", track.spliceHeader)
@@ -38,6 +46,35 @@ func checkError(err error) {
 		fmt.Println("error: ", err)
 	}
 }
+
+func createPrintString(curTrack track) string {
+	var buffer bytes.Buffer
+	buffer.WriteString(fmt.Sprintf("Saved with HW Version: %s\n", curTrack.versionString))
+	buffer.WriteString(fmt.Sprintf("Tempo: %v\n", curTrack.tempo))
+	for _, instrument := range curTrack.instruments {
+		buffer.WriteString(fmt.Sprintf("(%v) %s\t", instrument.instrumentID, instrument.instrumentName))
+		for i, step := range instrument.steps {
+			if i%4 == 0 {
+				buffer.WriteString("|")
+			}
+			// per spec. exception: print "E" if unknown
+			if step == 1 {
+				buffer.WriteString("x")
+			} else if step == 0 {
+				buffer.WriteString("-")
+			} else {
+				buffer.WriteString("E")
+			}
+		}
+		buffer.WriteString("|\n")
+	}
+	// fmt.Println(buffer.String())
+	return buffer.String()
+}
+
+// func parseTrackToStruct() track {
+//
+// }
 
 func main() {
 	var tracks []track
@@ -69,6 +106,8 @@ func main() {
 		fullPath := filepath.Join(inDataDirectory, fileName)
 		fileContents, err := ioutil.ReadFile(fullPath)
 		checkError(err)
+		// PARSE
+		//parseTrackToStruct(fileContents)
 		newTrack := track{}
 		//fmt.Printf("%s\n", hex.Dump(fileContents))
 		buf := bytes.NewReader(fileContents)
@@ -134,6 +173,11 @@ func main() {
 		tracks = append(tracks, newTrack)
 
 	}
-	fmt.Println(tracks)
+
+	// print each track information per specification
+	for _, track := range tracks {
+		trackOutputFormatted := createPrintString(track)
+		fmt.Println(trackOutputFormatted)
+	}
 
 }
