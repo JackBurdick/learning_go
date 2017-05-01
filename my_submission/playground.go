@@ -9,6 +9,7 @@ import (
 )
 
 // config
+// number of 'steps' played by an instrument each song
 const NUMSTEPS = 16
 
 // each track can have multiple instruments
@@ -18,7 +19,7 @@ type instrument struct {
 	steps          []byte
 }
 
-// one track per slice file
+// one track per `.splice` file
 type track struct {
 	fileLen       int
 	spliceHeader  [6]byte  // 6
@@ -47,11 +48,20 @@ func createPrintString(curTrack track) string {
 	// create string of specified track information
 	// include: specific track information from struct
 	// loop instruments in the track and print their steps
+
+	// write to buffer then return as buffer.String(), strings are immutable
 	var buffer bytes.Buffer
+	// track header;
+	// Saved with HW Version: 0.909
+	// Tempo: 240
 	buffer.WriteString(fmt.Sprintf("Saved with HW Version: %s\n", curTrack.versionString))
 	buffer.WriteString(fmt.Sprintf("Tempo: %v\n", curTrack.tempo))
+
+	// print instrument/step info > (99) Maracas	|x-x-|x-x-|x-x-|x-x-|
 	for _, instrument := range curTrack.instruments {
+		// identification > (0) SubKick
 		buffer.WriteString(fmt.Sprintf("(%v) %s\t", instrument.instrumentID, instrument.instrumentName))
+		// steps > |x---|----|x---|----|
 		for i, step := range instrument.steps {
 			if i%4 == 0 {
 				buffer.WriteString("|")
@@ -67,14 +77,16 @@ func createPrintString(curTrack track) string {
 		}
 		buffer.WriteString("|\n")
 	}
-	// fmt.Println(buffer.String())
 	return buffer.String()
 }
 
 func parseTrackToStruct(fileContents []byte) track {
 	// parse the given `.splice` files and store
 	// relevant information in the struct
-	// Use (debug): fmt.Printf("%s\n", hex.Dump(fileContents))
+	// 1. read in file
+	// 2. get file length
+	// 3. parse and store relevant parts, subtract size from file length
+	//NOTE: Use (for debuging): fmt.Printf("%s\n", hex.Dump(fileContents))
 
 	// track temp vars
 	var fileLen int
@@ -154,9 +166,10 @@ func parseTrackToStruct(fileContents []byte) track {
 
 func main() {
 	var tracks []track
-	// get list of file names at target directory
+	// config: root input dir
 	inDataDirectory := "fixtures"
 
+	// get list of file names at target directory
 	files, err := ioutil.ReadDir(inDataDirectory)
 	checkError(err)
 
@@ -176,7 +189,7 @@ func main() {
 		fileContents, err := ioutil.ReadFile(fullPath)
 		checkError(err)
 
-		// Parse
+		// parse
 		newTrack := parseTrackToStruct(fileContents)
 
 		// store track information
