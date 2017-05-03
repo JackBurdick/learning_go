@@ -10,7 +10,7 @@ import (
 
 // config
 // number of 'steps' played by an instrument each song
-const NUMSTEPS = 16
+const numSteps = 16
 
 // each track can have multiple instruments
 type instrument struct {
@@ -37,6 +37,8 @@ type track struct {
 // binary reader: https://golang.org/pkg/encoding/binary/#Read
 // hex dump for visualization/debug: https://golang.org/pkg/encoding/hex/#Dump
 // create strings: https://stackoverflow.com/questions/1760757/how-to-efficiently-concatenate-strings-in-go
+// structuring code/package naming https://stackoverflow.com/questions/14416275/golang-error-cant-load-package-package-my-prog-found-packages-my-prog-and-m
+// coding structure (continued): https://golang.org/doc/code.html
 
 func checkError(err error) {
 	if err != nil {
@@ -157,7 +159,7 @@ func parseTrackToStruct(fileContents []byte) track {
 		curInstrument.instrumentName = nameBuf
 
 		// steps
-		stepBuf := make([]byte, NUMSTEPS)
+		stepBuf := make([]byte, numSteps)
 		err = binary.Read(buf, binary.LittleEndian, &stepBuf)
 		checkError(err)
 		fileLen -= binary.Size(stepBuf)
