@@ -39,6 +39,7 @@ type track struct {
 // create strings: https://stackoverflow.com/questions/1760757/how-to-efficiently-concatenate-strings-in-go
 // structuring code/package naming https://stackoverflow.com/questions/14416275/golang-error-cant-load-package-package-my-prog-found-packages-my-prog-and-m
 // coding structure (continued): https://golang.org/doc/code.html
+// trim: https://golang.org/src/strings/example_test.go
 
 func checkError(err error) {
 	if err != nil {

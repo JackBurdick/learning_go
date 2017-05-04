@@ -126,7 +126,6 @@ func parseTrackToStruct(fileContents []byte) Pattern {
 // DecodeFile decodes the drum machine file found at the provided path
 // and returns a pointer to a parsed pattern which is the entry point to the
 // rest of the data.
-// TODO: implement
 func DecodeFile(path string) (*Pattern, error) {
 	fileContents, err := ioutil.ReadFile(path)
 	checkError(err)
@@ -134,8 +133,6 @@ func DecodeFile(path string) (*Pattern, error) {
 	// decode
 	p := &Pattern{}
 	*p = parseTrackToStruct(fileContents)
-
-	//trackOutputFormatted := createPrintString(*p)
 
 	return p, nil
 }
