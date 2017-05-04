@@ -5,6 +5,7 @@ package drum
 import (
 	"bytes"
 	"fmt"
+	"strings"
 )
 
 func (curTrack *Pattern) String() string {
@@ -17,7 +18,13 @@ func (curTrack *Pattern) String() string {
 	// track header;
 	// Saved with HW Version: 0.909
 	// Tempo: 240
-	buffer.WriteString(fmt.Sprintf("Saved with HW Version: %s\n", curTrack.versionString))
+	cleanedVersionString := fmt.Sprintf("%s", curTrack.versionString)
+	cleanedVersionString = strings.Trim(cleanedVersionString, "\x00")
+	curString := fmt.Sprintf("Saved with HW Version: %s\n", cleanedVersionString)
+	//curString = strings.Trim(cleanedVersionString, "\n")
+
+	buffer.WriteString(curString)
+	//buffer.WriteString(fmt.Sprintf("Saved with HW Version: %s\n", curString))
 	buffer.WriteString(fmt.Sprintf("Tempo: %v\n", curTrack.tempo))
 
 	// print instrument/step info > (99) Maracas	|x-x-|x-x-|x-x-|x-x-|

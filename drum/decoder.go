@@ -75,6 +75,7 @@ func parseTrackToStruct(fileContents []byte) Pattern {
 	err = binary.Read(buf, binary.BigEndian, &versionString)
 	checkError(err)
 	fileLen -= binary.Size(versionString)
+	//versionStringTrimmed := strings.TrimRight(versionString, '\x00')
 	newTrack.versionString = versionString
 
 	// Header: tempo
