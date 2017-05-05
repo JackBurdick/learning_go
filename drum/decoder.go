@@ -87,6 +87,7 @@ func parseTrackToStruct(fileContents []byte) Pattern {
 
 	// Read in body. id+name + 16 steps
 	// TODO: Issue is with pattern 5...
+	// TODO: there should be safety checks each step of the way
 	for fileLen > 0 {
 		curInstrument := Instrument{}
 		// ID
