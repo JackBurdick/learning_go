@@ -12,14 +12,16 @@ import (
 // number of 'steps' played by an instrument each song
 const numSteps = 16
 
-// each track can have multiple `Instrument`s
+// Instrument is a high level representation of a
+// single instrument in the pattern
 type Instrument struct {
 	instrumentName []byte
 	instrumentID   uint8
 	steps          []byte
 }
 
-// one `Pattern` per `.splice` file
+// Pattern is a high level representation
+// of a track pattern contained within a .splice file
 type Pattern struct {
 	fileLen       int
 	spliceHeader  [6]byte  // 6
