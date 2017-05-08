@@ -13,14 +13,9 @@ const numSteps = 16
 // Instrument is a high level representation of a
 // single instrument in the pattern
 type Instrument struct {
-	// instrumentName is a human readable instrument id
 	instrumentName []byte
-
-	// instrumentID is a unique id for instrument
-	instrumentID uint8
-
-	// steps is the number of parts the instrument may have in a given pattern
-	steps []byte // 16 steps max
+	instrumentID   uint8
+	steps          []byte // 16 steps max
 }
 
 // Pattern is a high level representation
@@ -34,10 +29,10 @@ type Pattern struct {
 	instruments   []Instrument // multiple instruments could exist
 }
 
+// create string of specified track information
+// include: specific track information from struct
+// loop instruments in the track and print their steps
 func (curTrack *Pattern) String() string {
-	// create string of specified track information
-	// include: specific track information from struct
-	// loop instruments in the track and print their steps
 
 	// write to buffer then return as buffer.String(), strings are immutable
 	var buffer bytes.Buffer

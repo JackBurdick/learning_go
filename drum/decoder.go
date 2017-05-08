@@ -7,19 +7,27 @@ import (
 	"io/ioutil"
 )
 
-func checkError(err error) {
-	if err != nil {
-		fmt.Println("error: ", err)
-	}
+// DecodeFile decodes the drum machine file found at the provided path
+// and returns a pointer to a parsed pattern which is the entry point to the
+// rest of the data.
+func DecodeFile(path string) (*Pattern, error) {
+	fileContents, err := ioutil.ReadFile(path)
+	checkError(err)
+
+	// decode
+	p := &Pattern{}
+	*p = parseTrackToStruct(fileContents)
+
+	return p, nil
 }
 
+// parse the given `.splice` files and store
+// relevant information in the struct
+// 1. read in file
+// 2. get file length
+// 3. parse and store relevant parts, subtract size from file length
+//NOTE: Use (for debuging): fmt.Printf("%s\n", hex.Dump(fileContents))
 func parseTrackToStruct(fileContents []byte) Pattern {
-	// parse the given `.splice` files and store
-	// relevant information in the struct
-	// 1. read in file
-	// 2. get file length
-	// 3. parse and store relevant parts, subtract size from file length
-	//NOTE: Use (for debuging): fmt.Printf("%s\n", hex.Dump(fileContents))
 
 	// track temp vars
 	var fileLen int
@@ -103,16 +111,8 @@ func parseTrackToStruct(fileContents []byte) Pattern {
 	return *newTrack
 }
 
-// DecodeFile decodes the drum machine file found at the provided path
-// and returns a pointer to a parsed pattern which is the entry point to the
-// rest of the data.
-func DecodeFile(path string) (*Pattern, error) {
-	fileContents, err := ioutil.ReadFile(path)
-	checkError(err)
-
-	// decode
-	p := &Pattern{}
-	*p = parseTrackToStruct(fileContents)
-
-	return p, nil
+func checkError(err error) {
+	if err != nil {
+		fmt.Println("error: ", err)
+	}
 }
