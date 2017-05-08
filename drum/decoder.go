@@ -8,29 +8,6 @@ import (
 	"strings"
 )
 
-// config
-// number of 'steps' played by an instrument each song
-const numSteps = 16
-
-// Instrument is a high level representation of a
-// single instrument in the pattern
-type Instrument struct {
-	instrumentName []byte
-	instrumentID   uint8
-	steps          []byte
-}
-
-// Pattern is a high level representation
-// of a track pattern contained within a .splice file
-type Pattern struct {
-	fileLen       int
-	spliceHeader  [6]byte  // 6
-	trackSize     int64    // 8
-	versionString [32]byte // 32
-	tempo         float32  // 4
-	instruments   []Instrument
-}
-
 func checkError(err error) {
 	if err != nil {
 		fmt.Println("error: ", err)
