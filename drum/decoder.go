@@ -14,7 +14,9 @@ import (
 func DecodeFile(path string) (*Pattern, error) {
 	// fileContents, err := ioutil.ReadFile(path)
 	file, err := os.Open(path)
-	checkError(err)
+	if err != nil {
+		return nil, err
+	}
 	defer file.Close()
 
 	r := io.Reader(file)
@@ -22,7 +24,9 @@ func DecodeFile(path string) (*Pattern, error) {
 	// decode
 	p := &Pattern{}
 	*p, err = parseSpliceToPattern(r)
-	checkError(err)
+	if err != nil {
+		fmt.Println("Error parseSpliceToPattern: ", err)
+	}
 	fmt.Println(p)
 
 	return p, nil
@@ -37,30 +41,39 @@ func parseSpliceToPattern(r io.Reader) (Pattern, error) {
 	// Decode SPLICE from header to ensure correct file type
 	var spliceHeader [6]byte // 6
 	err := binary.Read(r, binary.BigEndian, &spliceHeader)
-	checkError(err)
+	if err != nil {
+		return *newTrack, errors.New("unable to decode splice header: " + err.Error())
+	}
 
 	// Decode trackSize from pattern Header
 	var trackSize int64 // 8
 	err = binary.Read(r, binary.BigEndian, &trackSize)
-	checkError(err)
+	if err != nil {
+		return *newTrack, errors.New("unable to decode trackSize: " + err.Error())
+	}
 
-	// Header: version
+	// Decode versionString and store in struct
 	var versionString [32]byte // 32
 	err = binary.Read(r, binary.BigEndian, &versionString)
-	checkError(err)
+	if err != nil {
+		return *newTrack, errors.New("unable to decode versionString: " + err.Error())
+	}
 	newTrack.versionString = versionString
 
-	// Header: tempo
+	// Decode tempo and store in struct
 	// NOTE: tempo is little Endian
 	var tempo float32 // 4
 	err = binary.Read(r, binary.LittleEndian, &tempo)
-	checkError(err)
+	if err != nil {
+		return *newTrack, errors.New("unable to decode tempo: " + err.Error())
+	}
 	newTrack.tempo = tempo
 
 	// LimitedReader needs to take `-36` = versionString(32) + tempo(4)
 	// into account since we've already read in versionString and tempo
 	lr := io.LimitReader(r, trackSize-36)
 	for {
+		// decode instrument information from the remaining information
 		done, err := readInstrumentsFromTrack(lr, newTrack)
 		if done {
 			break
@@ -75,6 +88,7 @@ func parseSpliceToPattern(r io.Reader) (Pattern, error) {
 func readInstrumentsFromTrack(lr io.Reader, newTrack *Pattern) (bool, error) {
 	curInstrument := Instrument{}
 
+	// Decode instrumentID (unique id) of instrument and store in Instrument struct
 	var instrumentID uint8
 	err := binary.Read(lr, binary.BigEndian, &instrumentID)
 	if err == io.EOF {
@@ -85,14 +99,14 @@ func readInstrumentsFromTrack(lr io.Reader, newTrack *Pattern) (bool, error) {
 	}
 	curInstrument.instrumentID = instrumentID
 
-	// Length of instrument name
+	// Decode namLen (byte size of the human readable name) of instrument name
 	var nameLen int32
 	err = binary.Read(lr, binary.BigEndian, &nameLen)
 	if err != nil {
 		return false, errors.New("unable to decode instrument nameLen: " + err.Error())
 	}
 
-	// read human readable name of instrument
+	// Decode human readable name of instrument and store in Instrument struct
 	nameBuf := make([]byte, nameLen)
 	err = binary.Read(lr, binary.LittleEndian, &nameBuf)
 	if err != nil {
@@ -100,16 +114,17 @@ func readInstrumentsFromTrack(lr io.Reader, newTrack *Pattern) (bool, error) {
 	}
 	curInstrument.instrumentName = nameBuf
 
-	// steps were stored on HW as bytes
-	// but we can store them as bools instead
-	var stepBuf [numSteps]byte
-	err = binary.Read(lr, binary.LittleEndian, &stepBuf)
+	// steps were stored on HW as bytes but,
+	// we can store them as bools instead since we're only concerned with binary state
+	var stepArr [numSteps]byte
+	err = binary.Read(lr, binary.LittleEndian, &stepArr)
 	if err != nil {
 		return false, errors.New("unable to decode instrument steps: " + err.Error())
 	}
 
-	for i := range stepBuf {
-		if stepBuf[i] == 0x0001 {
+	// convert from bytes to bool and store in struct
+	for i := range stepArr {
+		if stepArr[i] == 0x0001 {
 			curInstrument.steps[i] = true
 		} else {
 			curInstrument.steps[i] = false
@@ -118,10 +133,4 @@ func readInstrumentsFromTrack(lr io.Reader, newTrack *Pattern) (bool, error) {
 
 	newTrack.instruments = append(newTrack.instruments, curInstrument)
 	return false, nil
-}
-
-func checkError(err error) {
-	if err != nil {
-		fmt.Println("error: ", err)
-	}
 }
