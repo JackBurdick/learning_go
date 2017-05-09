@@ -122,7 +122,7 @@ func readInstrumentsFromTrack(lr io.Reader, newTrack *Pattern) (bool, error) {
 		return false, errors.New("unable to decode instrument steps: " + err.Error())
 	}
 
-	// convert from bytes to bool and store in struct
+	// convert from bytes to bool and store in Instrument struct
 	for i := range stepArr {
 		if stepArr[i] == 0x0001 {
 			curInstrument.steps[i] = true

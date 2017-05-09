@@ -21,40 +21,45 @@ type Pattern struct {
 // Instrument is a high level representation of a
 // single instrument in the pattern
 type Instrument struct {
+	// instrumentName is a human readable name
 	instrumentName []byte
-	instrumentID   uint8
-	steps          [numSteps]bool // 16 steps max
+	// instrumentID is a unique instrument id
+	instrumentID uint8
+	steps        [numSteps]bool
 }
 
-// create string of specified track information
-// include: specific track information from struct
-// loop instruments in the track and print their steps
+// create string of track information according to spec
+// e.g.;
+//	Saved with HW Version: 0.708-alpha
+//	Tempo: 999
+//	(1) Kick	|x---|----|x---|----|
+//	(2) HiHat	|x-x-|x-x-|x-x-|x-x-|
 func (curTrack *Pattern) String() string {
+	// write formatted information to buffer then return as string
 
-	// write to buffer then return as buffer.String(), strings are immutable
 	var buffer bytes.Buffer
-	// track header;
-	// Saved with HW Version: 0.909
-	// Tempo: 240
+
+	// format and write cleaned track header to buffer
 	cleanedVersionString := fmt.Sprintf("%s", curTrack.versionString)
 	cleanedVersionString = strings.Trim(cleanedVersionString, "\x00")
 	curString := fmt.Sprintf("Saved with HW Version: %s\n", cleanedVersionString)
-	//curString = strings.Trim(cleanedVersionString, "\n")
-
 	buffer.WriteString(curString)
-	//buffer.WriteString(fmt.Sprintf("Saved with HW Version: %s\n", curString))
+
+	// format and write tempo information to buffer
 	buffer.WriteString(fmt.Sprintf("Tempo: %v\n", curTrack.tempo))
 
-	// print instrument/step info > (99) Maracas	|x-x-|x-x-|x-x-|x-x-|
+	// write all instruments to buffer
 	for _, instrument := range curTrack.instruments {
-		// identification > (0) SubKick
+		// format and write intrument id and humanreadable name to buffer
 		buffer.WriteString(fmt.Sprintf("(%v) %s\t", instrument.instrumentID, instrument.instrumentName))
-		// steps > |x---|----|x---|----|
+
 		for i, step := range instrument.steps {
+			// format and write intrument step information to buffer
 			if i%4 == 0 {
+				// write pipe separator every 4 steps
 				buffer.WriteString("|")
 			}
-			// per spec. exception: print "E" if unknown
+
 			if step {
 				buffer.WriteString("x")
 			} else {
@@ -63,5 +68,7 @@ func (curTrack *Pattern) String() string {
 		}
 		buffer.WriteString("|\n")
 	}
+
+	// convert buffer to string before returning
 	return buffer.String()
 }
