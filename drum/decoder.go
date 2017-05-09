@@ -23,25 +23,23 @@ func DecodeFile(path string) (*Pattern, error) {
 	p := &Pattern{}
 	*p, err = parseSpliceToPattern(r)
 	checkError(err)
+	fmt.Println(p)
 
 	return p, nil
 }
 
 // parse the given `.splice` files and store
 // relevant information in the struct
-// 1. read in file
-// 2. get file length
-// 3. parse and store relevant parts, subtract size from file length
 func parseSpliceToPattern(r io.Reader) (Pattern, error) {
 
 	newTrack := &Pattern{}
 
-	// Header: SPLICE
+	// Decode SPLICE from header to ensure correct file type
 	var spliceHeader [6]byte // 6
 	err := binary.Read(r, binary.BigEndian, &spliceHeader)
 	checkError(err)
 
-	// Header: track size is big endian
+	// Decode trackSize from pattern Header
 	var trackSize int64 // 8
 	err = binary.Read(r, binary.BigEndian, &trackSize)
 	checkError(err)
@@ -59,7 +57,8 @@ func parseSpliceToPattern(r io.Reader) (Pattern, error) {
 	checkError(err)
 	newTrack.tempo = tempo
 
-	// Read in body containing instrument information
+	// LimitedReader needs to take `-36` = versionString(32) + tempo(4)
+	// into account since we've already read in versionString and tempo
 	lr := io.LimitReader(r, trackSize-36)
 	for {
 		done, err := readInstrumentsFromTrack(lr, newTrack)
@@ -68,7 +67,6 @@ func parseSpliceToPattern(r io.Reader) (Pattern, error) {
 		} else if err != nil {
 			return *newTrack, err
 		}
-
 	}
 
 	return *newTrack, nil
@@ -77,13 +75,15 @@ func parseSpliceToPattern(r io.Reader) (Pattern, error) {
 func readInstrumentsFromTrack(lr io.Reader, newTrack *Pattern) (bool, error) {
 	curInstrument := Instrument{}
 
-	err := binary.Read(lr, binary.BigEndian, &curInstrument.instrumentID)
+	var instrumentID uint8
+	err := binary.Read(lr, binary.BigEndian, &instrumentID)
 	if err == io.EOF {
 		// we've read all the information
 		return true, nil
 	} else if err != nil {
 		return false, errors.New("unable to decode instrumentID: " + err.Error())
 	}
+	curInstrument.instrumentID = instrumentID
 
 	// Length of instrument name
 	var nameLen int32
@@ -91,23 +91,22 @@ func readInstrumentsFromTrack(lr io.Reader, newTrack *Pattern) (bool, error) {
 	if err != nil {
 		return false, errors.New("unable to decode instrument nameLen: " + err.Error())
 	}
-	//checkError(err)
-	if nameLen > 12 {
-		// TODO: this is a cheap fix to a larger problem
-		fmt.Println("hi")
-	}
 
 	// read human readable name of instrument
 	nameBuf := make([]byte, nameLen)
 	err = binary.Read(lr, binary.LittleEndian, &nameBuf)
-	checkError(err)
+	if err != nil {
+		return false, errors.New("unable to decode instrument nameBuf: " + err.Error())
+	}
 	curInstrument.instrumentName = nameBuf
 
 	// steps were stored on HW as bytes
 	// but we can store them as bools instead
 	var stepBuf [numSteps]byte
 	err = binary.Read(lr, binary.LittleEndian, &stepBuf)
-	checkError(err)
+	if err != nil {
+		return false, errors.New("unable to decode instrument steps: " + err.Error())
+	}
 
 	for i := range stepBuf {
 		if stepBuf[i] == 0x0001 {
@@ -116,9 +115,8 @@ func readInstrumentsFromTrack(lr io.Reader, newTrack *Pattern) (bool, error) {
 			curInstrument.steps[i] = false
 		}
 	}
-	// add instrument to instruments on track
-	newTrack.instruments = append(newTrack.instruments, curInstrument)
 
+	newTrack.instruments = append(newTrack.instruments, curInstrument)
 	return false, nil
 }
 
