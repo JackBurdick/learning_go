@@ -10,6 +10,10 @@ import (
 // number of 'steps' played by an instrument each song
 const numSteps = 16
 
+// expectedHeader is a string that is expected to be present
+// on `.splice` files to be decoded
+const expectedHeader = "SPLICE"
+
 // Pattern is a high level representation
 // of a track pattern contained within a .splice file
 type Pattern struct {
