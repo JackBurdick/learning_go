@@ -12,7 +12,7 @@ import (
 // and returns a pointer to a parsed pattern which is the entry point to the
 // rest of the data.
 func DecodeFile(path string) (*Pattern, error) {
-	// fileContents, err := ioutil.ReadFile(path)
+
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -25,15 +25,14 @@ func DecodeFile(path string) (*Pattern, error) {
 	p := &Pattern{}
 	*p, err = parseSpliceToPattern(r)
 	if err != nil {
-		fmt.Println("Error parseSpliceToPattern: ", err)
+		fmt.Println("Error in parseSpliceToPattern: ", err)
 	}
-	fmt.Println(p)
 
 	return p, nil
 }
 
-// parse the given `.splice` files and store
-// relevant information in the struct
+// parseSpliceToPattern decodes the given `.splice` files and stores
+// the relevant information in the Pattern struct.
 func parseSpliceToPattern(r io.Reader) (Pattern, error) {
 
 	newTrack := &Pattern{}
@@ -92,7 +91,8 @@ func parseSpliceToPattern(r io.Reader) (Pattern, error) {
 }
 
 // readInstrumentsFromTrack decodes the instrument information contained within
-// the body of the Pattern
+// the body of the Pattern and appends the newInstrument to the Pattern.instruments a
+// true (bool) is returned when all the instruments have been read.
 func readInstrumentsFromTrack(lr io.Reader, newTrack *Pattern) (bool, error) {
 	newInstrument := Instrument{}
 
@@ -100,7 +100,7 @@ func readInstrumentsFromTrack(lr io.Reader, newTrack *Pattern) (bool, error) {
 	var instrumentID uint8
 	err := binary.Read(lr, binary.BigEndian, &instrumentID)
 	if err == io.EOF {
-		// we've read all the information
+		// all the information has been read
 		return true, nil
 	} else if err != nil {
 		return false, errors.New("unable to decode instrumentID: " + err.Error())
@@ -123,7 +123,7 @@ func readInstrumentsFromTrack(lr io.Reader, newTrack *Pattern) (bool, error) {
 	newInstrument.instrumentName = nameBuf
 
 	// steps were stored on HW as bytes but,
-	// we can store them as bools instead since we're only concerned with binary state
+	// can be stored as bools instead since only concern is a binary state
 	var stepArr [numSteps]byte
 	err = binary.Read(lr, binary.LittleEndian, &stepArr)
 	if err != nil {
@@ -134,8 +134,10 @@ func readInstrumentsFromTrack(lr io.Reader, newTrack *Pattern) (bool, error) {
 	for i := range stepArr {
 		if stepArr[i] == 0x01 {
 			newInstrument.steps[i] = true
-		} else {
+		} else if stepArr[i] == 0x00 {
 			newInstrument.steps[i] = false
+		} else {
+			return false, errors.New("unexpected values in instrument steps: " + err.Error())
 		}
 	}
 
