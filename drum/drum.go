@@ -15,7 +15,7 @@ const numSteps = 16
 type Instrument struct {
 	instrumentName []byte
 	instrumentID   uint8
-	steps          []byte // 16 steps max
+	steps          [numSteps]bool // 16 steps max
 }
 
 // Pattern is a high level representation
@@ -58,12 +58,10 @@ func (curTrack *Pattern) String() string {
 				buffer.WriteString("|")
 			}
 			// per spec. exception: print "E" if unknown
-			if step == 1 {
+			if step {
 				buffer.WriteString("x")
-			} else if step == 0 {
-				buffer.WriteString("-")
 			} else {
-				buffer.WriteString("E")
+				buffer.WriteString("-")
 			}
 		}
 		buffer.WriteString("|\n")

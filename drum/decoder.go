@@ -99,12 +99,21 @@ func parseTrackToStruct(fileContents []byte) Pattern {
 		fileLen -= binary.Size(nameBuf)
 		curInstrument.instrumentName = nameBuf
 
-		// steps
-		stepBuf := make([]byte, numSteps)
+		// steps were stored on HW as bytes
+		// but we can store them as bools instead
+		var stepBuf [numSteps]byte
 		err = binary.Read(buf, binary.LittleEndian, &stepBuf)
 		checkError(err)
 		fileLen -= binary.Size(stepBuf)
-		curInstrument.steps = stepBuf
+
+		for i := range stepBuf {
+			if stepBuf[i] == 0x0001 {
+				curInstrument.steps[i] = true
+			} else {
+				curInstrument.steps[i] = false
+			}
+		}
+
 		// add instrument to instruments on track
 		newTrack.instruments = append(newTrack.instruments, curInstrument)
 	}
