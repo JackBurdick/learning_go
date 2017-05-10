@@ -32,7 +32,7 @@ type Pattern struct {
 // String implements the stringer.
 func (p *Pattern) String() string {
 
-	// create string of track information according to spec
+	// Create string of track information according to specification;
 	//	Saved with HW Version: 0.708-alpha
 	//	Tempo: 999
 	//	(1) Kick	|x---|----|x---|----|
@@ -118,7 +118,7 @@ func parseSpliceToPattern(r io.Reader) (*Pattern, error) {
 	}
 
 	// NOTE: LimitReader needs to be offset by `-36` = (version(32) + tempo(4))
-	// since we've already read in version and tempo
+	// since we've already read in version and tempo.
 	const offset = 36
 	lr := io.LimitReader(r, patSize-offset)
 
