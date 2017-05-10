@@ -61,7 +61,7 @@ Tempo: 999
 	}
 
 	for _, exp := range tData {
-		decoded, err := DecodeFile(path.Join("fixtures", exp.path))
+		decoded, err := Decode(path.Join("fixtures", exp.path))
 		if err != nil {
 			t.Fatalf("something went wrong decoding %s - %v", exp.path, err)
 		}
