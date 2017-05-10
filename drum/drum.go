@@ -9,14 +9,13 @@ import (
 	"strings"
 )
 
-// config
 // numSteps is the number of 'steps' played by an instrument each song.
 const numSteps = 16
 
 // Instrument is a high level representation of a single instrument in the
 // pattern.
 type Instrument struct {
-	id    uint8
+	id    int
 	name  string
 	steps [numSteps]bool
 }
@@ -142,12 +141,14 @@ func parseSpliceToPattern(r io.Reader) (*Pattern, error) {
 func readInstrumentsFromTrack(lr io.Reader) (Instrument, error) {
 	var inst Instrument
 
-	if err := binary.Read(lr, binary.BigEndian, &inst.id); err != nil {
+	var id uint8
+	if err := binary.Read(lr, binary.BigEndian, &id); err != nil {
 		if err == io.EOF {
 			return Instrument{}, err
 		}
 		return Instrument{}, fmt.Errorf("unable to decode id: %v", err)
 	}
+	inst.id = int(id)
 
 	var nameLen int32
 	if err := binary.Read(lr, binary.BigEndian, &nameLen); err != nil {
