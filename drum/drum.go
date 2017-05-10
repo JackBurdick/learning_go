@@ -10,11 +10,11 @@ import (
 )
 
 // config
-// number of 'steps' played by an instrument each song
+// numSteps is the number of 'steps' played by an instrument each song.
 const numSteps = 16
 
 // Instrument is a high level representation of a single instrument in the
-// pattern
+// pattern.
 type Instrument struct {
 	id    uint8
 	name  string
@@ -22,7 +22,7 @@ type Instrument struct {
 }
 
 // Pattern is a high level representation of a track pattern contained within a
-// .splice file
+// .splice file.
 type Pattern struct {
 	version     string
 	tempo       float32
@@ -99,7 +99,7 @@ func parseSpliceToPattern(r io.Reader) (*Pattern, error) {
 	}
 
 	if expectedHeader != string(spliceHeader[:len(expectedHeader)]) {
-		return nil, fmt.Errorf("decoded SPLICE header does not match expected value")
+		return nil, fmt.Errorf("decoded SPLICE header does not match expectedHeader")
 	}
 
 	var trackSize int64
