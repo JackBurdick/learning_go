@@ -68,8 +68,6 @@ func (p *Pattern) String() string {
 
 // expectedHeader is a string that is expected to be present
 // on `.splice` files to be decoded.
-
-//const expectedHeader = [6]byte{'S', 'P', 'L', 'I', 'C', 'E'}
 const expectedHeader = "SPLICE"
 
 // DecodeFile decodes the drum machine file found at the provided path and returns
