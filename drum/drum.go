@@ -38,32 +38,32 @@ func (p *Pattern) String() string {
 	//	(1) Kick	|x---|----|x---|----|
 	//	(2) HiHat	|x-x-|x-x-|x-x-|x-x-|
 
-	var buffer bytes.Buffer
+	var buf bytes.Buffer
 
-	cleanedVersionString := strings.Trim(p.version, "\x00")
-	buffer.WriteString(fmt.Sprintf("Saved with HW Version: %s\n", cleanedVersionString))
-	buffer.WriteString(fmt.Sprintf("Tempo: %v\n", p.tempo))
+	versTrim := strings.Trim(p.version, "\x00")
+	buf.WriteString(fmt.Sprintf("Saved with HW Version: %s\n", versTrim))
+	buf.WriteString(fmt.Sprintf("Tempo: %v\n", p.tempo))
 
 	for _, in := range p.instruments {
-		buffer.WriteString(fmt.Sprintf("(%v) %s\t", in.id, in.name))
+		buf.WriteString(fmt.Sprintf("(%v) %s\t", in.id, in.name))
 
 		for i, step := range in.steps {
 			if i%4 == 0 {
-				buffer.WriteString("|")
+				buf.WriteString("|")
 			}
 
 			switch {
 			case step:
-				buffer.WriteString("x")
+				buf.WriteString("x")
 			default:
-				buffer.WriteString("-")
+				buf.WriteString("-")
 			}
 		}
 
-		buffer.WriteString("|\n")
+		buf.WriteString("|\n")
 	}
 
-	return buffer.String()
+	return buf.String()
 }
 
 // expectedHeader is a string that is expected to be present
@@ -88,23 +88,23 @@ func DecodeFile(path string) (*Pattern, error) {
 	return p, nil
 }
 
-// parseSpliceToPattern decodes the given `.splice` files and stores
-// the relevant information in the Pattern struct.
+// parseSpliceToPattern decodes the given `.splice` files and stores the relevant
+// information in the Pattern struct.
 func parseSpliceToPattern(r io.Reader) (*Pattern, error) {
 	var p Pattern
 
-	var spliceHeader [len(expectedHeader)]byte
-	if err := binary.Read(r, binary.BigEndian, &spliceHeader); err != nil {
+	var fHeader [len(expectedHeader)]byte
+	if err := binary.Read(r, binary.BigEndian, &fHeader); err != nil {
 		return nil, fmt.Errorf("unable to decode splice header: %v", err)
 	}
 
-	if expectedHeader != string(spliceHeader[:len(expectedHeader)]) {
-		return nil, fmt.Errorf("decoded SPLICE header does not match expectedHeader")
+	if expectedHeader != string(fHeader[:len(expectedHeader)]) {
+		return nil, fmt.Errorf("decoded file header does not match expectedHeader")
 	}
 
-	var trackSize int64
-	if err := binary.Read(r, binary.BigEndian, &trackSize); err != nil {
-		return nil, fmt.Errorf("unable to decode trackSize: %v", err)
+	var patSize int64
+	if err := binary.Read(r, binary.BigEndian, &patSize); err != nil {
+		return nil, fmt.Errorf("unable to decode patSize: %v", err)
 	}
 
 	var version [32]byte
@@ -117,10 +117,10 @@ func parseSpliceToPattern(r io.Reader) (*Pattern, error) {
 		return nil, fmt.Errorf("unable to decode tempo: %v", err)
 	}
 
-	// NOTE: LimitReader needs to take `-36` = version(32) + tempo(4) into
-	// account since we've already read in version and tempo
+	// NOTE: LimitReader needs to be offset by `-36` = (version(32) + tempo(4))
+	// since we've already read in version and tempo
 	const offset = 36
-	lr := io.LimitReader(r, trackSize-offset)
+	lr := io.LimitReader(r, patSize-offset)
 
 	for {
 		in, err := readInstrumentsFromTrack(lr)
@@ -137,17 +137,16 @@ func parseSpliceToPattern(r io.Reader) (*Pattern, error) {
 	return &p, nil
 }
 
-// readInstrumentsFromTrack decodes the instrument information contained within
-// the body of the Pattern and appends the newInst to the Pattern.instruments a
-// true (bool) is returned when all the instruments have been read.
+// readInstrumentsFromTrack decodes and returns the instrument information
+// contained within the body of the Pattern.
 func readInstrumentsFromTrack(lr io.Reader) (Instrument, error) {
-	var in Instrument
+	var inst Instrument
 
-	if err := binary.Read(lr, binary.BigEndian, &in.id); err != nil {
+	if err := binary.Read(lr, binary.BigEndian, &inst.id); err != nil {
 		if err == io.EOF {
 			return Instrument{}, err
 		}
-		return Instrument{}, fmt.Errorf("unable to decode instID: %v", err)
+		return Instrument{}, fmt.Errorf("unable to decode id: %v", err)
 	}
 
 	var nameLen int32
@@ -157,9 +156,9 @@ func readInstrumentsFromTrack(lr io.Reader) (Instrument, error) {
 
 	name := make([]byte, nameLen)
 	if err := binary.Read(lr, binary.LittleEndian, &name); err != nil {
-		return Instrument{}, fmt.Errorf("unable to decode instrument nameBuf: %v", err)
+		return Instrument{}, fmt.Errorf("unable to decode instrument name: %v", err)
 	}
-	in.name = string(name)
+	inst.name = string(name)
 
 	var steps [numSteps]byte
 	if err := binary.Read(lr, binary.LittleEndian, &steps); err != nil {
@@ -169,13 +168,13 @@ func readInstrumentsFromTrack(lr io.Reader) (Instrument, error) {
 	for i := range steps {
 		switch steps[i] {
 		case 0x01:
-			in.steps[i] = true
+			inst.steps[i] = true
 		case 0x00:
-			in.steps[i] = false
+			inst.steps[i] = false
 		default:
-			return Instrument{}, fmt.Errorf("unexpected values in instrument steps")
+			return Instrument{}, fmt.Errorf("unexpected values in encoded instrument steps")
 		}
 	}
 
-	return in, nil
+	return inst, nil
 }
