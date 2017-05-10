@@ -122,12 +122,12 @@ func parseSpliceToPattern(r io.Reader) (*Pattern, error) {
 	lr := io.LimitReader(r, patSize-offset)
 
 	for {
-		in, err := readInstrumentsFromTrack(lr)
+		in, err := readInstrumentFromPat(lr)
 		if err != nil {
-			if err != io.EOF {
-				return nil, err
+			if err == io.EOF {
+				break
 			}
-			break
+			return nil, err
 		}
 
 		p.instruments = append(p.instruments, in)
@@ -136,9 +136,9 @@ func parseSpliceToPattern(r io.Reader) (*Pattern, error) {
 	return &p, nil
 }
 
-// readInstrumentsFromTrack decodes and returns the instrument information
+// readInstrumentFromPat decodes and returns the instrument information
 // contained within the body of the Pattern.
-func readInstrumentsFromTrack(lr io.Reader) (Instrument, error) {
+func readInstrumentFromPat(lr io.Reader) (Instrument, error) {
 	var inst Instrument
 
 	var id uint8
