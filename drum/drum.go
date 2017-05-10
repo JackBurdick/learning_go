@@ -65,20 +65,19 @@ func (p *Pattern) String() string {
 	return buf.String()
 }
 
-// expectedHeader is a string that is expected to be present
+// header is a string that is expected to be present
 // on `.splice` files to be decoded.
-const expectedHeader = "SPLICE"
+const header = "SPLICE"
 
-// DecodeFile decodes the drum machine file found at the provided path and returns
-// a pointer to a parsed pattern which is the entry point to the rest of the data.
-func DecodeFile(path string) (*Pattern, error) {
+// Decode opens the specified drum machine file and decodes it into a pattern.
+func Decode(path string) (*Pattern, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
 
-	p, err := parseSpliceToPattern(file)
+	p, err := decodePattern(file)
 	if err != nil {
 		fmt.Println("Error in parseSpliceToPattern: ", err)
 		return nil, err
@@ -87,18 +86,17 @@ func DecodeFile(path string) (*Pattern, error) {
 	return p, nil
 }
 
-// parseSpliceToPattern decodes the given `.splice` files and stores the relevant
-// information in the Pattern struct.
-func parseSpliceToPattern(r io.Reader) (*Pattern, error) {
+// decodePattern reads the drum machine data and performs the unmarshaling.
+func decodePattern(r io.Reader) (*Pattern, error) {
 	var p Pattern
 
-	var fHeader [len(expectedHeader)]byte
-	if err := binary.Read(r, binary.BigEndian, &fHeader); err != nil {
+	var hdr [len(header)]byte
+	if err := binary.Read(r, binary.BigEndian, &hdr); err != nil {
 		return nil, fmt.Errorf("unable to decode splice header: %v", err)
 	}
 
-	if expectedHeader != string(fHeader[:len(expectedHeader)]) {
-		return nil, fmt.Errorf("decoded file header does not match expectedHeader")
+	if header != string(hdr[:]) {
+		return nil, fmt.Errorf("decoded file header does not match %q", header)
 	}
 
 	var patSize int64
@@ -116,13 +114,13 @@ func parseSpliceToPattern(r io.Reader) (*Pattern, error) {
 		return nil, fmt.Errorf("unable to decode tempo: %v", err)
 	}
 
-	// NOTE: LimitReader needs to be offset by `-36` = (version(32) + tempo(4))
+	// LimitReader needs to be offset by `-36` = (version(32) + tempo(4))
 	// since we've already read in version and tempo.
 	const offset = 36
 	lr := io.LimitReader(r, patSize-offset)
 
 	for {
-		in, err := readInstrumentFromPat(lr)
+		inst, err := decodeInstrument(lr)
 		if err != nil {
 			if err == io.EOF {
 				break
@@ -130,15 +128,15 @@ func parseSpliceToPattern(r io.Reader) (*Pattern, error) {
 			return nil, err
 		}
 
-		p.instruments = append(p.instruments, in)
+		p.instruments = append(p.instruments, inst)
 	}
 
 	return &p, nil
 }
 
-// readInstrumentFromPat decodes and returns the instrument information
-// contained within the body of the Pattern.
-func readInstrumentFromPat(lr io.Reader) (Instrument, error) {
+// decodeInstrument decodes and returns the instrument information contained
+// within the body of the Pattern.
+func decodeInstrument(lr io.Reader) (Instrument, error) {
 	var inst Instrument
 
 	var id uint8
@@ -165,7 +163,6 @@ func readInstrumentFromPat(lr io.Reader) (Instrument, error) {
 	if err := binary.Read(lr, binary.LittleEndian, &steps); err != nil {
 		return Instrument{}, fmt.Errorf("unable to decode instrument steps: %v", err)
 	}
-
 	for i := range steps {
 		switch steps[i] {
 		case 0x01:
