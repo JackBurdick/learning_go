@@ -96,7 +96,7 @@ func decodePattern(r io.Reader) (*Pattern, error) {
 	}
 
 	if header != string(hdr[:]) {
-		return nil, fmt.Errorf("decoded file header does not match %q", header)
+		return nil, fmt.Errorf("decoded file header does not match %v", header)
 	}
 
 	var patSize int64
