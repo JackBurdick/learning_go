@@ -43,10 +43,10 @@ func (p *Pattern) String() string {
 	buf.WriteString(fmt.Sprintf("Saved with HW Version: %s\n", versTrim))
 	buf.WriteString(fmt.Sprintf("Tempo: %v\n", p.tempo))
 
-	for _, in := range p.instruments {
-		buf.WriteString(fmt.Sprintf("(%v) %s\t", in.id, in.name))
+	for _, inst := range p.instruments {
+		buf.WriteString(fmt.Sprintf("(%v) %s\t", inst.id, inst.name))
 
-		for i, step := range in.steps {
+		for i, step := range inst.steps {
 			if i%4 == 0 {
 				buf.WriteString("|")
 			}
