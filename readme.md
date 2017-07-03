@@ -2,6 +2,7 @@
 [image_0]: ./misc/go_challenge_01_overview.png
 
 ## Go Challenge #1: Binary Decoder
+![sample decoding output][image_0] 
 Original Project Information can be found [here](http://golang-challenge.org/go-challenge1/). The main functionality is to decode a pattern from a given binary backup.
 
 ## Running the tests
