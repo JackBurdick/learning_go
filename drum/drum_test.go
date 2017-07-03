@@ -65,6 +65,8 @@ Tempo: 999
 		if err != nil {
 			t.Fatalf("something went wrong decoding %s - %v", exp.path, err)
 		}
+		// fmt.Println(decoded)
+
 		if fmt.Sprint(decoded) != exp.output {
 			t.Logf("decoded:\n%#v\n", fmt.Sprint(decoded))
 			t.Logf("expected:\n%#v\n", exp.output)
