@@ -1,0 +1,2 @@
+ - `fixtures`
+    - `/en_stopwords.json` [link](https://github.com/6/stopwords-json)
